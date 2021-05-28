@@ -1,14 +1,14 @@
-package gr.xe.rating.service.models.db;
+package gr.xe.rating.service.models.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import javax.persistence.*;
 import java.util.Date;
 
-@Getter
-@Setter
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 @Entity
 @Table(name = "ratings",
     indexes = {
@@ -17,7 +17,7 @@ import java.util.Date;
             @Index(name = "ratings_rater_idx", columnList = "rater", unique = false)
     }
 )
-public class Rating {
+public class RatingEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,9 +28,8 @@ public class Rating {
     @Column(name = "rated_entity", nullable = false)
     private String ratedEntity;
 
-    @CreationTimestamp
     @Column(name = "created_at", nullable = false)
-    private Date createdAt;
+    private long createdAt;
 
     @Column(name = "rater", nullable = true)
     private String rater;
