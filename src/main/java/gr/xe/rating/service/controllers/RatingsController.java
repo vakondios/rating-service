@@ -1,34 +1,58 @@
 package gr.xe.rating.service.controllers;
 
-import gr.xe.rating.service.mappers.DbMappers;
-import gr.xe.rating.service.mappers.DtoMappers;
-import gr.xe.rating.service.models.dto.Rating;
-import gr.xe.rating.service.repositories.RatingsRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import gr.xe.rating.service.models.dto.RatingDto;
+import gr.xe.rating.service.models.dto.RequestHelperInfo;
+import gr.xe.rating.service.models.dto.ResponseInfo;
+import gr.xe.rating.service.properties.AppProperties;
+import gr.xe.rating.service.services.RatingService;
+import gr.xe.rating.service.utils.PrintUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RestController
-@RequestMapping(path = "/ratings")
 public class RatingsController {
+    private final AppProperties appProperties;
+    private final RatingService ratingService;
 
-    private static final Logger logger = LoggerFactory.getLogger(RatingsController.class);
-    private final RatingsRepository repository;
+    @Autowired
+    public RatingsController (AppProperties appProperties,
+                              RatingService ratingService) {
 
-    public RatingsController (RatingsRepository repository) {
-        this.repository = repository;
+        this.appProperties = appProperties;
+        this.ratingService = ratingService;
+        if (log.isDebugEnabled()) log.debug("Controller Initialized.");
     }
 
-    @PostMapping
-    public ResponseEntity<Rating> createRating (@RequestBody Rating rating) {
-        var db = DbMappers.fromDtoModel(rating);
-        repository.save(db);
-        var dto = DtoMappers.fromDbModel(db);
-        return ResponseEntity.ok(dto);
+    @Operation(security = @SecurityRequirement(name = "controllerBasicAuth")) //Swagger Configuration
+    @RequestMapping(path = "/ratings", method = RequestMethod.POST, consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ResponseInfo> createRating (
+            @RequestBody RatingDto ratingDto,
+            @RequestAttribute("requestHelper") RequestHelperInfo requestHelperInfo) {
+
+        PrintUtils.onController(requestHelperInfo);
+        ResponseInfo responseInfo = new ResponseInfo(appProperties.getName(), appProperties.getVersion(), requestHelperInfo.getRequestURI());
+        ratingService.createRating(responseInfo, ratingDto);
+        return new ResponseEntity<>(responseInfo, HttpStatus.valueOf(responseInfo.getStatus()));
+    }
+
+    @Operation(security = @SecurityRequirement(name = "controllerBasicAuth")) //Swagger Configuration
+    @RequestMapping(value = "/ratings/{rated_entity}", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<ResponseInfo> getOverallRating(
+            @PathVariable String rated_entity,
+            @RequestAttribute("requestHelper") RequestHelperInfo requestHelperInfo) {
+
+        PrintUtils.onController(requestHelperInfo);
+        ResponseInfo responseInfo = new ResponseInfo(appProperties.getName(), appProperties.getVersion(), requestHelperInfo.getRequestURI());
+        ratingService.overallRating(responseInfo,rated_entity);
+        return new ResponseEntity<>(responseInfo, HttpStatus.valueOf(responseInfo.getStatus()));
     }
 
 }
